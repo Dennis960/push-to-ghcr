@@ -1,6 +1,6 @@
 name: "push-to-ghcr"
 author: "@macbre"
-description: "This action simplifies pushes of Docker images ot ghcr.io repository"
+description: "This action simplifies pushes of Docker images to ghcr.io repository"
 # https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions#branding
 branding:
   icon: "arrow-up-circle"
@@ -8,8 +8,8 @@ branding:
   
 inputs:
   github_token: 
-     description: "Your secrets.GITHUB_TOKEN"
-     required: true
+    description: "Your secrets.GITHUB_TOKEN"
+    required: true
 
   image_name:
     description: "Image name, e.g. my-user-name/my-repo (will be lowercased)"
@@ -39,12 +39,25 @@ inputs:
     required: false
   
   image_tag:
-    description: Image tag, e.g. latest. Will overwrite the tag latest tag on a push, and have no effect on a release. Specify multiple tags separated by a comma, e.g. latest,1.0.0
+    description: Image tag, e.g. latest. Will overwrite the latest tag on a push, and have no effect on a release. Specify multiple tags separated by a comma, e.g. latest,1.0.0
     required: false
+
+  use_branch_as_tag_name:
+    description: "Use the branch name as the tag name, resulting in branch-name.github-run-number and branch-name.latest tags. Overrides image_tag."
+    required: false
+    default: false
 
 runs:
   using: "composite"
   steps:
+    - name: Extract branch name
+      shell: bash
+      run: |
+          branch_name="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          branch_name=$(echo "$branch_name" | sed 's/\//_/g')
+          echo "branch=${branch_name}" >> $GITHUB_OUTPUT
+      id: extract_branch
+
     # https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
     - name: Log in to the Container registry
       shell: bash
@@ -55,6 +68,7 @@ runs:
         DOCKER_IO_TOKEN: ${{ inputs.docker_io_token }}
         IMAGE_NAME: ${{ inputs.image_name }}
         IMAGE_TAG: ${{ inputs.image_tag }}
+        BRANCH_IMAGE_TAG: ${{ steps.extract_branch.outputs.branch }}.${{ github.run_number }},${{ steps.extract_branch.outputs.branch }}.latest
 
       run: |
         echo "Using $(docker -v)"
@@ -68,12 +82,17 @@ runs:
           export COMMIT_TAG=${GITHUB_REF:10}
           export COMMIT_TAG=${COMMIT_TAG//v/}
         else
-          if [ -z ${IMAGE_TAG} ]; then
-            export COMMIT_TAG=latest
+          if [ "${{ inputs.use_branch_as_tag_name }}" = "true" ]; then
+            export COMMIT_TAG=${BRANCH_IMAGE_TAG}
           else
-            export COMMIT_TAG=${IMAGE_TAG}
+            if [ -z ${IMAGE_TAG} ]; then
+              export COMMIT_TAG=latest
+            else
+              export COMMIT_TAG=${IMAGE_TAG}
+            fi
           fi
         fi
+
         export BUILD_TAG=${GITHUB_SHA::7}
         
         # lowercase the image name, see https://github.com/macbre/push-to-ghcr/issues/12
