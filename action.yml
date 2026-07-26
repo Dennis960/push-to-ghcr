@@ -153,7 +153,7 @@ runs:
         echo "::endgroup::"
 
         if [ -z "${DOCKER_IO_TOKEN}" ]; then
-          echo "::notice::NOT pushing the Docker image to docker.io ... Provide 'docker_io_token' if needed."
+          echo "NOT pushing the Docker image to docker.io ... Provide 'docker_io_token' if needed."
         else
           if [ -z ${DOCKER_IO_USER} ]; then
             export DOCKER_IO_USER="${{ github.actor }}"

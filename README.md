@@ -34,7 +34,7 @@ jobs:
     runs-on: "ubuntu-20.04"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       # https://github.com/marketplace/actions/push-to-ghcr
       - name: Build and publish a Docker image for ${{ github.repository }}
@@ -78,7 +78,7 @@ The image that is pushed is labelled with `org.label-schema` [and `org.openconta
 }
 ```
 
-Additonally, `BUILD_DATE` and `GITHUB_SHA` build args are passed. They can be used to set env variables:
+Additionally, `BUILD_DATE` and `GITHUB_SHA` build args are passed. They can be used to set env variables:
 
 ```Dockerfile
 # these two are passed as build args
